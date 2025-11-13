@@ -31,6 +31,25 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project is optimised for Vercel and uses Cloudinary as its media source. To deploy:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Sign in to [Vercel](https://vercel.com) and create a new project by importing this repository.
+2. Add the required environment variables in **Project Settings → Environment Variables**:
+   - `CLOUDINARY_CLOUD_NAME`
+   - `CLOUDINARY_API_KEY`
+   - `CLOUDINARY_API_SECRET`
+   - (optional) `CLOUDINARY_FOLDER` to limit the gallery to a specific Cloudinary folder.
+3. Trigger a deployment. Vercel will automatically run `npm install` and `npm run build`.
+
+The `/api/media` route is cached on Vercel’s Edge Network for 5 minutes to minimise Cloudinary API calls. Use the Vercel CLI for faster iteration:
+
+```bash
+npm install -g vercel
+vercel login
+vercel link        # run inside the project directory
+vercel env pull    # bring env vars to your local .env file
+vercel dev         # optional: run locally with Vercel's runtime
+vercel             # deploy to production
+```
+
+Refer to the [Next.js deployment docs](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

@@ -1,23 +1,44 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+
+import Image from 'next/image';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+type MediaFilter = 'all' | 'image' | 'video';
 
 type MediaItem = {
-  id: number;
+  id: string;
   type: 'image' | 'video';
   src: string;
   poster?: string;
   title: string;
+  width?: number;
+  height?: number;
 };
 
+const FILTER_OPTIONS: Array<{ label: string; value: MediaFilter }> = [
+  { label: 'All', value: 'all' },
+  { label: 'Images', value: 'image' },
+  { label: 'Videos', value: 'video' },
+];
+
 export default function SimpleGallery() {
-  const [filter, setFilter] = useState<'all' | 'image' | 'video'>('all');
+  const [filter, setFilter] = useState<MediaFilter>('all');
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const cacheRef = useRef<Partial<Record<MediaFilter, MediaItem[]>>>({});
 
   // Lightbox state
   const [selected, setSelected] = useState<MediaItem | null>(null);
 
   useEffect(() => {
+    const cached = cacheRef.current[filter];
+
+    if (cached) {
+      setItems(cached);
+      setLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
     setLoading(true);
 
@@ -25,12 +46,15 @@ export default function SimpleGallery() {
       signal: controller.signal,
     })
       .then((res) => {
-        if (!res.ok) throw new Error('Network response was not ok');
+        if (!res.ok) throw new Error('Failed to load media');
         return res.json();
       })
-      .then((data: MediaItem[]) => setItems(data))
-      .catch((err) => {
-        if ((err as any).name !== 'AbortError') {
+      .then((data: MediaItem[]) => {
+        cacheRef.current[filter] = data;
+        setItems(data);
+      })
+      .catch((err: unknown) => {
+        if ((err as { name?: string })?.name !== 'AbortError') {
           console.error(err);
           setItems([]);
         }
@@ -54,8 +78,8 @@ export default function SimpleGallery() {
 
   // close on Escape
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSelected(null);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelected(null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -78,41 +102,29 @@ export default function SimpleGallery() {
 
         {/* Filter Buttons */}
         <div className="mb-8 flex justify-center gap-4">
-          <button
-            onClick={() => setFilter('all')}
-            className={`rounded-lg px-6 py-2 font-medium transition ${
-              filter === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilter('image')}
-            className={`rounded-lg px-6 py-2 font-medium transition ${
-              filter === 'image'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            Images
-          </button>
-          <button
-            onClick={() => setFilter('video')}
-            className={`rounded-lg px-6 py-2 font-medium transition ${
-              filter === 'video'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            Videos
-          </button>
+          {FILTER_OPTIONS.map((option) => {
+            const isActive = filter === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setFilter(option.value)}
+                className={`rounded-lg px-6 py-2 font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                  isActive
+                    ? 'bg-blue-600 text-white focus-visible:outline-blue-300'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700 focus-visible:outline-gray-300'
+                }`}
+                aria-pressed={isActive}
+              >
+                {option.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Loading */}
         {loading ? (
-          <div className="py-20 text-center text-gray-400">
+          <div className="py-20 text-center text-gray-400" role="status">
             <div className="mx-auto inline-flex items-center gap-3">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-t-transparent border-white/60" />
               <span>Loading...</span>
@@ -122,33 +134,36 @@ export default function SimpleGallery() {
           <>
             {/* Gallery Grid */}
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((item) => (
+              {items.map((item, index) => (
                 <div
                   key={item.id}
                   onClick={() => openItem(item)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') openItem(item);
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') openItem(item);
                   }}
                   className="group cursor-pointer overflow-hidden rounded-xl bg-gray-800 shadow-lg transition hover:scale-105 focus:outline-none"
                 >
                   <div className="relative aspect-video overflow-hidden">
                     {item.type === 'image' ? (
-                      <img
+                      <Image
                         src={item.src}
                         alt={item.title}
-                        className="h-full w-full object-cover"
+                        fill
+                        className="object-cover"
+                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        priority={index < 2}
                       />
                     ) : (
                       <video
                         src={item.src}
                         poster={item.poster}
                         className="h-full w-full object-cover"
-                        autoPlay
-                        loop
                         muted
+                        loop
                         playsInline
+                        preload="metadata"
                       />
                     )}
                     <div className="absolute left-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium uppercase backdrop-blur">
@@ -179,8 +194,8 @@ export default function SimpleGallery() {
           role="dialog"
         >
           <div
-            className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-lg bg-black"
-            onClick={(e) => e.stopPropagation()}
+            className="relative max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-lg bg-black"
+            onClick={(event) => event.stopPropagation()}
           >
             {/* Close button */}
             <button
@@ -201,12 +216,16 @@ export default function SimpleGallery() {
             </button>
 
             {selected.type === 'image' ? (
-              <img
-                src={selected.src}
-                alt={selected.title}
-                className="h-full w-full object-contain bg-black"
-                style={{ maxHeight: '90vh' }}
-              />
+              <div className="relative flex h-full min-h-[40vh] w-full items-center justify-center bg-black">
+                <Image
+                  src={selected.src}
+                  alt={selected.title}
+                  fill
+                  sizes="100vw"
+                  className="object-contain"
+                  priority
+                />
+              </div>
             ) : (
               <video
                 src={selected.src}
