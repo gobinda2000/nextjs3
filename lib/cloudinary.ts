@@ -74,7 +74,8 @@ const fetchCloudinaryMedia = async (type?: CloudinaryResourceType): Promise<Fetc
     .max_results(30)
     .execute();
 
-  return (resources as CloudinarySearchResource[]).map((resource) => ({
+  return (resources as CloudinarySearchResource[]).map(
+    (resource: CloudinarySearchResource) => ({
     id: resource.asset_id,
     type: resource.resource_type as CloudinaryResourceType,
     src: resource.secure_url,
@@ -85,7 +86,8 @@ const fetchCloudinaryMedia = async (type?: CloudinaryResourceType): Promise<Fetc
     title: resource.public_id,
     width: resource.width ?? undefined,
     height: resource.height ?? undefined,
-  }));
+    }),
+  );
 };
 
 const cachedFetchCloudinaryMedia = unstable_cache(fetchCloudinaryMedia, ['cloudinary-media'], {
