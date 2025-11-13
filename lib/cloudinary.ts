@@ -24,6 +24,16 @@ cloudinary.config({
   secure: true,
 });
 
+type CloudinarySearchResource = {
+  asset_id: string;
+  resource_type: string;
+  secure_url: string;
+  thumbnail_url?: string | null;
+  public_id: string;
+  width?: number | null;
+  height?: number | null;
+};
+
 type FetchResult = Array<{
   id: string;
   type: CloudinaryResourceType;
@@ -64,7 +74,7 @@ const fetchCloudinaryMedia = async (type?: CloudinaryResourceType): Promise<Fetc
     .max_results(30)
     .execute();
 
-  return resources.map((resource) => ({
+  return (resources as CloudinarySearchResource[]).map((resource) => ({
     id: resource.asset_id,
     type: resource.resource_type as CloudinaryResourceType,
     src: resource.secure_url,
