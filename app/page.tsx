@@ -21,11 +21,14 @@ const FILTER_OPTIONS: Array<{ label: string; value: MediaFilter }> = [
   { label: 'Videos', value: 'video' },
 ];
 
+const PAGE_SIZE = 10;
+
 export default function SimpleGallery() {
   const [filter, setFilter] = useState<MediaFilter>('all');
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const cacheRef = useRef<Partial<Record<MediaFilter, MediaItem[]>>>({});
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Lightbox state
   const [selected, setSelected] = useState<MediaItem | null>(null);
@@ -64,6 +67,13 @@ export default function SimpleGallery() {
     return () => controller.abort();
   }, [filter]);
 
+  useEffect(() => {
+    const newTotalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+    if (currentPage > newTotalPages) {
+      setCurrentPage(newTotalPages);
+    }
+  }, [items, currentPage]);
+
   // prevent background scroll while modal open
   useEffect(() => {
     if (selected) {
@@ -90,6 +100,11 @@ export default function SimpleGallery() {
   }, []);
 
   const closeModal = useCallback(() => setSelected(null), []);
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const paginatedItems = items.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
 
   return (
     <div className="min-h-screen bg-gray-900 p-8 text-white">
@@ -108,7 +123,10 @@ export default function SimpleGallery() {
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setFilter(option.value)}
+                onClick={() => {
+                  setFilter(option.value);
+                  setCurrentPage(1);
+                }}
                 className={`rounded-lg px-6 py-2 font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
                   isActive
                     ? 'bg-blue-600 text-white focus-visible:outline-blue-300'
@@ -134,7 +152,7 @@ export default function SimpleGallery() {
           <>
             {/* Gallery Grid */}
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((item, index) => (
+              {paginatedItems.map((item, index) => (
                 <div
                   key={item.id}
                   onClick={() => openItem(item)}
@@ -180,6 +198,34 @@ export default function SimpleGallery() {
             {/* Empty State */}
             {items.length === 0 && (
               <div className="py-20 text-center text-gray-500">No items found</div>
+            )}
+
+            {items.length > 0 && totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((page) => Math.max(1, page - 1))
+                  }
+                  disabled={currentPage === 1}
+                  className="rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-gray-200 transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-400">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((page) => Math.min(totalPages, page + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-gray-200 transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
             )}
           </>
         )}
