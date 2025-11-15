@@ -32,6 +32,7 @@ type CloudinarySearchResource = {
   public_id: string;
   width?: number | null;
   height?: number | null;
+  tags?: string[] | null;
 };
 
 type FetchResult = Array<{
@@ -42,6 +43,7 @@ type FetchResult = Array<{
   title: string;
   width?: number;
   height?: number;
+  tags?: string[];
 }>;
 
 const buildVideoPosterUrl = (publicId: string) =>
@@ -55,18 +57,33 @@ const buildVideoPosterUrl = (publicId: string) =>
     secure: true,
   });
 
-const fetchCloudinaryMedia = async (type?: CloudinaryResourceType): Promise<FetchResult> => {
-  const parts: string[] = [];
+const fetchCloudinaryMedia = async (
+  type?: CloudinaryResourceType,
+  tag?: string,
+): Promise<FetchResult> => {
+  const resourceClause = type
+    ? [`resource_type:${type}`]
+    : ['resource_type:image', 'resource_type:video'];
+  let expression = `(${resourceClause.join(' OR ')})`;
+
+  const andClauses: string[] = [];
 
   if (process.env.CLOUDINARY_FOLDER) {
-    parts.push(`folder:${process.env.CLOUDINARY_FOLDER}`);
-  }
-  if (type) {
-    parts.push(`resource_type:${type}`);
+    andClauses.push(`folder:${process.env.CLOUDINARY_FOLDER}`);
   }
 
-  const expression =
-    parts.join(' AND ') || 'resource_type:image OR resource_type:video';
+  if (tag?.trim()) {
+    const cleaned = tag.trim();
+    const needsQuotes = /[\s"]/g.test(cleaned);
+    const escaped = needsQuotes
+      ? `"${cleaned.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+      : cleaned;
+    andClauses.push(`tags=${escaped}`);
+  }
+
+  if (andClauses.length) {
+    expression = `${expression} AND ${andClauses.join(' AND ')}`;
+  }
 
   const { resources } = await cloudinary.search
     .expression(expression)
@@ -74,8 +91,7 @@ const fetchCloudinaryMedia = async (type?: CloudinaryResourceType): Promise<Fetc
     .max_results(30)
     .execute();
 
-  return (resources as CloudinarySearchResource[]).map(
-    (resource: CloudinarySearchResource) => ({
+  return (resources as CloudinarySearchResource[]).map((resource) => ({
     id: resource.asset_id,
     type: resource.resource_type as CloudinaryResourceType,
     src: resource.secure_url,
@@ -86,15 +102,24 @@ const fetchCloudinaryMedia = async (type?: CloudinaryResourceType): Promise<Fetc
     title: resource.public_id,
     width: resource.width ?? undefined,
     height: resource.height ?? undefined,
-    }),
-  );
+    tags: resource.tags ?? undefined,
+  }));
 };
 
-const cachedFetchCloudinaryMedia = unstable_cache(fetchCloudinaryMedia, ['cloudinary-media'], {
-  revalidate: 300,
-  tags: ['cloudinary-media'],
-});
+const cachedFetchCloudinaryMedia = async (
+  type?: CloudinaryResourceType,
+  tag?: string,
+) =>
+  unstable_cache(
+    () => fetchCloudinaryMedia(type, tag),
+    ['cloudinary-media', type ?? 'all', tag ?? 'all'],
+    { revalidate: 300, tags: ['cloudinary-media'] },
+  )();
 
-export async function fetchMedia(type?: CloudinaryResourceType) {
-  return cachedFetchCloudinaryMedia(type);
+export async function fetchMedia(params: {
+  type?: CloudinaryResourceType;
+  tag?: string;
+} = {}) {
+  const { type, tag } = params;
+  return cachedFetchCloudinaryMedia(type, tag);
 }

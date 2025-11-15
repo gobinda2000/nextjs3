@@ -3,19 +3,19 @@
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-type MediaFilter = 'all' | 'image' | 'video';
-
 type MediaItem = {
   id: string;
   type: 'image' | 'video';
   src: string;
   poster?: string;
   title: string;
-  width?: number;
-  height?: number;
+  tags?: string[];
 };
 
-const FILTER_OPTIONS: Array<{ label: string; value: MediaFilter }> = [
+type MediaFilter = 'all' | 'image' | 'video' | `tag:${string}`;
+type FilterOption = { label: string; value: MediaFilter };
+
+const BASE_FILTER_OPTIONS: FilterOption[] = [
   { label: 'All', value: 'all' },
   { label: 'Images', value: 'image' },
   { label: 'Videos', value: 'video' },
@@ -25,17 +25,45 @@ const PAGE_SIZE = 10;
 
 export default function SimpleGallery() {
   const [filter, setFilter] = useState<MediaFilter>('all');
+  const [filters, setFilters] = useState<FilterOption[]>(BASE_FILTER_OPTIONS);
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const cacheRef = useRef<Partial<Record<MediaFilter, MediaItem[]>>>({});
+  const cacheRef = useRef<Record<string, MediaItem[]>>({});
   const [currentPage, setCurrentPage] = useState(1);
 
   // Lightbox state
   const [selected, setSelected] = useState<MediaItem | null>(null);
 
   useEffect(() => {
-    const cached = cacheRef.current[filter];
+    let cancelled = false;
 
+    fetch('/api/media/tags')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((tags: string[]) => {
+        if (cancelled || !Array.isArray(tags)) return;
+        setFilters([
+          ...BASE_FILTER_OPTIONS,
+          ...tags.map((tag) => {
+            const canonical = tag.trim();
+            return {
+              label: `${canonical}`,
+              value: `tag:${canonical}` as MediaFilter,
+            };
+          }),
+        ]);
+      })
+      .catch(() => {})
+      .finally(() => {
+        cancelled = true;
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const cached = cacheRef.current[filter];
     if (cached) {
       setItems(cached);
       setLoading(false);
@@ -45,9 +73,16 @@ export default function SimpleGallery() {
     const controller = new AbortController();
     setLoading(true);
 
-    fetch(`/api/media${filter === 'all' ? '' : `?type=${filter}`}`, {
-      signal: controller.signal,
-    })
+    const query =
+      filter === 'all'
+        ? ''
+        : filter === 'image' || filter === 'video'
+        ? `?type=${filter}`
+        : filter.startsWith('tag:')
+        ? `?tag=${encodeURIComponent(filter.slice(4))}`
+        : '';
+
+    fetch(`/api/media${query}`, { signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error('Failed to load media');
         return res.json();
@@ -116,8 +151,8 @@ export default function SimpleGallery() {
         </div>
 
         {/* Filter Buttons */}
-        <div className="mb-8 flex justify-center gap-4">
-          {FILTER_OPTIONS.map((option) => {
+        <div className="mb-8 flex justify-center gap-3 overflow-x-auto pb-2">
+          {filters.map((option) => {
             const isActive = filter === option.value;
             return (
               <button

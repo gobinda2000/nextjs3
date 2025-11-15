@@ -1,15 +1,19 @@
-  import { NextResponse } from 'next/server';
-  import { fetchMedia } from '@/lib/cloudinary';
+import { NextResponse } from 'next/server';
+import { fetchMedia } from '@/lib/cloudinary';
 
-  export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const filter = searchParams.get('type') as 'image' | 'video' | null;
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const typeParam = searchParams.get('type');
+  const tag = searchParams.get('tag') ?? undefined;
 
-    try {
-      const data = await fetchMedia(filter ?? undefined);
-      return NextResponse.json(data);
-    } catch (error) {
-      console.error(error);
-      return NextResponse.json({ message: 'Cloudinary fetch failed' }, { status: 500 });
-    }
+  const type =
+    typeParam === 'image' || typeParam === 'video' ? typeParam : undefined;
+
+  try {
+    const media = await fetchMedia({ type, tag });
+    return NextResponse.json(media);
+  } catch (error) {
+    console.error('Failed to fetch media', error);
+    return NextResponse.json([], { status: 500 });
   }
+}
