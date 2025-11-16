@@ -151,28 +151,32 @@ export default function SimpleGallery() {
         </div>
 
         {/* Filter Buttons */}
-        <div className="mb-8 flex justify-center gap-3 overflow-x-auto pb-2">
-          {filters.map((option) => {
-            const isActive = filter === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => {
-                  setFilter(option.value);
-                  setCurrentPage(1);
-                }}
-                className={`rounded-lg px-6 py-2 font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
-                  isActive
-                    ? 'bg-blue-600 text-white focus-visible:outline-blue-300'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700 focus-visible:outline-gray-300'
-                }`}
-                aria-pressed={isActive}
-              >
-                {option.label}
-              </button>
-            );
-          })}
+        <div className="relative mb-8">
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-gray-900 to-transparent sm:hidden" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-gray-900 to-transparent sm:hidden" />
+          <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 scrollbar-hide sm:justify-center sm:px-0">
+            {filters.map((option) => {
+              const isActive = filter === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    setFilter(option.value);
+                    setCurrentPage(1);
+                  }}
+                  className={`shrink-0 rounded-lg px-6 py-2 font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                    isActive
+                      ? 'bg-blue-600 text-white focus-visible:outline-blue-300'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700 focus-visible:outline-gray-300'
+                  }`}
+                  aria-pressed={isActive}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Loading */}
