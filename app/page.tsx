@@ -34,6 +34,8 @@ export default function SimpleGallery() {
 
   // Lightbox state
   const [selected, setSelected] = useState<MediaItem | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,17 +127,51 @@ export default function SimpleGallery() {
   // close on Escape
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setSelected(null);
+      if (event.key === 'Escape') {
+        if (isFullscreen) {
+          exitFullscreen();
+        } else {
+          setSelected(null);
+        }
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  }, [isFullscreen]);
+
+  // Handle fullscreen change events
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
   const openItem = useCallback((item: MediaItem) => {
     setSelected(item);
   }, []);
 
-  const closeModal = useCallback(() => setSelected(null), []);
+  const closeModal = useCallback(() => {
+    if (isFullscreen) {
+      exitFullscreen();
+    }
+    setSelected(null);
+  }, [isFullscreen]);
+
+  const enterFullscreen = useCallback(() => {
+    if (modalRef.current && modalRef.current.requestFullscreen) {
+      modalRef.current.requestFullscreen().catch(console.error);
+    }
+  }, []);
+
+  const exitFullscreen = useCallback(() => {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(console.error);
+    }
+  }, []);
+
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const paginatedItems = items.slice(
     (currentPage - 1) * PAGE_SIZE,
@@ -274,35 +310,86 @@ export default function SimpleGallery() {
       {/* Lightbox / Modal */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          ref={modalRef}
+          className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 ${isFullscreen ? 'bg-black' : ''}`}
           onClick={closeModal}
           aria-modal="true"
           role="dialog"
         >
           <div
-            className="relative max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-lg bg-black"
+            className={`relative ${isFullscreen ? 'h-screen w-screen' : 'max-h-[90vh] w-full max-w-4xl'} overflow-hidden rounded-lg bg-black`}
             onClick={(event) => event.stopPropagation()}
           >
-            {/* Close button */}
-            <button
-              onClick={closeModal}
-              aria-label="Close"
-              className="absolute right-3 top-3 z-10 rounded-md bg-black/50 p-2 text-white hover:bg-black/60 focus:outline-none focus:ring-2 focus:ring-white"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                aria-hidden="true"
+            {/* Control buttons */}
+            <div className="absolute right-3 top-3 z-10 flex gap-2">
+              {/* Fullscreen button */}
+              <button
+                onClick={isFullscreen ? exitFullscreen : enterFullscreen}
+                aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                className="rounded-md bg-black/50 p-2 text-white hover:bg-black/60 focus:outline-none focus:ring-2 focus:ring-white"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+                {isFullscreen ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M8 3v3a2 2 0 0 1-2 2H3" />
+                    <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
+                    <path d="M3 16h3a2 2 0 0 1 2 2v3" />
+                    <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+                    <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+                    <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+                    <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+                  </svg>
+                )}
+              </button>
+
+              {/* Close button */}
+              <button
+                onClick={closeModal}
+                aria-label="Close"
+                className="rounded-md bg-black/50 p-2 text-white hover:bg-black/60 focus:outline-none focus:ring-2 focus:ring-white"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
             {selected.type === 'image' ? (
-              <div className="relative flex h-full min-h-[40vh] w-full items-center justify-center bg-black">
+              <div className={`relative flex h-full ${isFullscreen ? 'min-h-screen' : 'min-h-[40vh]'} w-full items-center justify-center bg-black`}>
                 <Image
                   src={selected.src}
                   alt={selected.title}
@@ -319,11 +406,11 @@ export default function SimpleGallery() {
                 controls
                 autoPlay
                 className="h-full w-full bg-black"
-                style={{ maxHeight: '90vh' }}
+                style={{ maxHeight: isFullscreen ? '100vh' : '90vh' }}
               />
             )}
 
-            <div className="absolute left-4 bottom-4 z-10 rounded-md bg-black/50 px-3 py-1 text-sm">
+            <div className={`absolute left-4 bottom-4 z-10 rounded-md bg-black/50 px-3 py-1 text-sm ${isFullscreen ? 'text-white' : ''}`}>
               {selected.title}
             </div>
           </div>
