@@ -21,7 +21,8 @@ const BASE_FILTER_OPTIONS: FilterOption[] = [
   { label: 'Videos', value: 'video' },
 ];
 
-const PAGE_SIZE = 10;
+// Changed PAGE_SIZE for mobile 3x3 grid
+const PAGE_SIZE = 9; // 3 rows x 3 columns = 9 items per page
 
 export default function SimpleGallery() {
   const [filter, setFilter] = useState<MediaFilter>('all');
@@ -189,8 +190,8 @@ export default function SimpleGallery() {
           </div>
         ) : (
           <>
-            {/* Gallery Grid */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Gallery Grid - Updated for mobile 3x3 */}
+            <div className="grid gap-2 grid-cols-3 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {paginatedItems.map((item, index) => (
                 <div
                   key={item.id}
@@ -202,15 +203,15 @@ export default function SimpleGallery() {
                   }}
                   className="group cursor-pointer overflow-hidden rounded-xl bg-gray-800 shadow-lg transition hover:scale-105 focus:outline-none"
                 >
-                  <div className="relative aspect-video overflow-hidden">
+                  <div className="relative aspect-square overflow-hidden sm:aspect-video">
                     {item.type === 'image' ? (
                       <Image
                         src={item.src}
                         alt={item.title}
                         fill
                         className="object-cover"
-                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                        priority={index < 2}
+                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 33vw"
+                        priority={index < 6}
                       />
                     ) : (
                       <video
@@ -223,12 +224,12 @@ export default function SimpleGallery() {
                         preload="metadata"
                       />
                     )}
-                    <div className="absolute left-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium uppercase backdrop-blur">
-                      {item.type}
+                    <div className="absolute left-1 top-1 sm:left-3 sm:top-3 rounded-full bg-black/60 px-2 py-0.5 sm:px-3 sm:py-1 text-xs font-medium uppercase backdrop-blur">
+                      {item.type === 'image' ? 'IMG' : 'VID'}
                     </div>
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold">{item.title}</h3>
+                  <div className="p-2 sm:p-4">
+                    <h3 className="text-xs sm:text-base font-semibold truncate">{item.title}</h3>
                   </div>
                 </div>
               ))}
