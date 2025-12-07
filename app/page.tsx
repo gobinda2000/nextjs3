@@ -21,8 +21,8 @@ const BASE_FILTER_OPTIONS: FilterOption[] = [
   { label: 'Videos', value: 'video' },
 ];
 
-// Changed PAGE_SIZE for mobile 3x3 grid
-const PAGE_SIZE = 9; // 3 rows x 3 columns = 9 items per page
+// Changed PAGE_SIZE for mobile 4x3 grid
+const PAGE_SIZE = 12; // 4 rows x 3 columns = 12 items per page
 
 export default function SimpleGallery() {
   const [filter, setFilter] = useState<MediaFilter>('all');
@@ -226,7 +226,7 @@ export default function SimpleGallery() {
           </div>
         ) : (
           <>
-            {/* Gallery Grid - Updated for mobile 3x3 */}
+            {/* Gallery Grid - Updated for mobile 4x3 */}
             <div className="grid gap-2 grid-cols-3 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {paginatedItems.map((item, index) => (
                 <div
@@ -247,7 +247,7 @@ export default function SimpleGallery() {
                         fill
                         className="object-cover"
                         sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 33vw"
-                        priority={index < 6}
+                        priority={index < 12}
                       />
                     ) : (
                       <video
