@@ -264,9 +264,6 @@ export default function SimpleGallery() {
                       {item.type === 'image' ? 'IMG' : 'VID'}
                     </div>
                   </div>
-                  <div className="p-2 sm:p-4">
-                    <h3 className="text-xs sm:text-base font-semibold truncate">{item.title}</h3>
-                  </div>
                 </div>
               ))}
             </div>
