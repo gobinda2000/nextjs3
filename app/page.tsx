@@ -313,7 +313,7 @@ export default function SimpleGallery() {
                   onTouchMove={(e) => e.stopPropagation()}
                   onTouchEnd={(e) => e.stopPropagation()}
                 />
-                {/* Skip buttons */}
+                {/* Skip buttons jjj*/}
                 <div className="absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-between px-4 pointer-events-none">
                   <button
                     onClick={(e) => { e.stopPropagation(); skipVideo(-30); }}
@@ -338,7 +338,6 @@ export default function SimpleGallery() {
                 </div>
               </>
             )}
-
             <div className="absolute left-4 bottom-4 z-10 rounded-md bg-black/50 px-3 py-1 text-sm">
               {selected.title}
             </div>
