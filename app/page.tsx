@@ -146,7 +146,7 @@ export default function SimpleGallery() {
       <div className="mx-auto max-w-6xl">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="mb-2 text-4xl font-bold">Simple Gallery</h1>
+          <h1 className="mb-2 text-4xl font-bold">Simple Gallery Page</h1>
           <p className="text-gray-400">Images and Videos Collection</p>
         </div>
 
